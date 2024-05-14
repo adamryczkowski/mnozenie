@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "mnozenie"
+version = "0.1.0"
+description = ""
+authors = ["Adam Ryczkowski <adam@statystyka.net>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pillow = "^10.3.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
