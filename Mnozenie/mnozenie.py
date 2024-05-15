@@ -51,7 +51,7 @@ class Task:
             return max(1, math.log(self.result + 1) / math.log(9)) - 1
 
     def get_time_limit(self) -> float:
-        return 12 + self.difficulty_score * 30
+        return 7 + self.difficulty_score * 18
 
     @property
     def epoch(self) -> int:
