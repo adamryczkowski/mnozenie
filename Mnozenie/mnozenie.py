@@ -129,7 +129,7 @@ class MnozenieApp:
         self.window.title("Mnozenie")
 
         json_file = Path("performance.json")
-        if not json_file.exists():
+        if json_file.exists():
             self._tasks = Tasks.CreateFromJSON()
         else:
             self._tasks = Tasks(10, 50, 10)
