@@ -4,6 +4,8 @@ version = "0.1.0"
 description = ""
 authors = ["Adam Ryczkowski <adam@statystyka.net>"]
 readme = "README.md"
+packages = [{ include = "Mnozenie", from = '.' }]
+
 
 [tool.poetry.dependencies]
 python = "^3.11"
