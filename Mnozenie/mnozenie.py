@@ -51,7 +51,7 @@ class Task:
             return max(1, math.log(self.result + 1) / math.log(9)) - 1
 
     def get_time_limit(self) -> float:
-        return 7 + self.difficulty_score * 18
+        return 6 + self.difficulty_score * 5
 
     @property
     def epoch(self) -> int:
@@ -70,7 +70,7 @@ class Tasks:
     def CreateFromJSON(json_file: Path = "performance.json"):
         with open(json_file, "r") as f:
             performance = json.load(f)
-        tasks = Tasks(10, 50, 10)
+        tasks = Tasks(10, 60, 10)
         tasks._performance = performance
         for question, history in performance.items():
             tasks._performance[question] = [bool(x) for x in history]
@@ -123,14 +123,18 @@ class MnozenieApp:
     _task: Task
     _task_inv: bool
     _repetition: bool
+    _perf_file: Path
 
     def __init__(self):
         self.window = tk.Tk()
         self.window.title("Mnozenie")
 
-        json_file = Path("performance.json")
-        if json_file.exists():
-            self._tasks = Tasks.CreateFromJSON()
+        root_path = Path(__file__).parent
+        self._perf_file = root_path / "performance.json"
+
+
+        if self._perf_file.exists():
+            self._tasks = Tasks.CreateFromJSON(self._perf_file)
         else:
             self._tasks = Tasks(10, 50, 10)
 
@@ -163,13 +167,13 @@ class MnozenieApp:
         self.window.bind('<Return>', lambda event: self.check_answer())
         self.window.bind('<KP_Enter>', lambda event: self.check_answer())  # Bind the numeric pad enter key
 
-        success_image = Image.open("success.jpg")
+        success_image = Image.open(root_path/"success.jpg")
         self.success_photo = ImageTk.PhotoImage(success_image)
 
-        failure_image = Image.open("failure.png")
+        failure_image = Image.open(root_path/"failure.png")
         self.failure_photo = ImageTk.PhotoImage(failure_image)
 
-        timeout_image = Image.open("timeout.png")
+        timeout_image = Image.open(root_path/"timeout.png")
         self.timeout_photo = ImageTk.PhotoImage(timeout_image)
 
         # Create labels for images
@@ -184,7 +188,7 @@ class MnozenieApp:
         self.new_question()
 
     def quit_app(self):
-        self._tasks.serialize_performance()
+        self._tasks.serialize_performance(self._perf_file)
         self.window.destroy()
 
     def new_question(self):
@@ -244,6 +248,10 @@ class MnozenieApp:
         # Add a label to display the number of failures
 
 
-if __name__ == "__main__":
+def main():
     app = MnozenieApp()
     app.window.mainloop()
+
+
+if __name__ == "__main__":
+    main()

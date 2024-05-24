@@ -15,3 +15,6 @@ pillow = "^10.3.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+mnozenie = 'Mnozenie.mnozenie:main'
