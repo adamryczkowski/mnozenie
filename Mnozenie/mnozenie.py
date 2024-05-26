@@ -71,7 +71,6 @@ class Tasks:
         with open(json_file, "r") as f:
             performance = json.load(f)
         tasks = Tasks(10, 60, 10)
-        # tasks._performance = performance
         for question, history in performance.items():
             tasks._performance[question] = [bool(x) for x in history]
         return tasks
