@@ -51,7 +51,7 @@ class Task:
             return max(1, math.log(self.result + 1) / math.log(9)) - 1
 
     def get_time_limit(self) -> float:
-        return 6 + self.difficulty_score * 5
+        return 4 + self.difficulty_score * 8
 
     @property
     def epoch(self) -> int:
@@ -70,7 +70,7 @@ class Tasks:
     def CreateFromJSON(json_file: Path = "performance.json"):
         with open(json_file, "r") as f:
             performance = json.load(f)
-        tasks = Tasks(10, 60, 10)
+        tasks = Tasks(10, 100, 10)
         for question, history in performance.items():
             tasks._performance[question] = [bool(x) for x in history]
         return tasks
@@ -135,7 +135,7 @@ class MnozenieApp:
         if self._perf_file.exists():
             self._tasks = Tasks.CreateFromJSON(self._perf_file)
         else:
-            self._tasks = Tasks(10, 50, 10)
+            self._tasks = Tasks(10, 100, 10)
 
         self._repetition = False
 

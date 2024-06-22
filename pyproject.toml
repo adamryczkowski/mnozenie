@@ -11,6 +11,7 @@ packages = [{ include = "Mnozenie", from = '.' }]
 python = "^3.11"
 pillow = "^10.3.0"
 openai = "^1.30.3"
+gtts = "^2.5.1"
 
 
 [build-system]
