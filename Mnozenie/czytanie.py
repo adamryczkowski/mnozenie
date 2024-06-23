@@ -4,7 +4,6 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 import numpy as np
-import difflib
 
 import whisper
 import time
@@ -23,43 +22,10 @@ class Speech2Text:
         return out
 
 
-@dataclass
-class HistoryScore:
-    timestamp: float
-    score: float
-    time_taken: float
-    answer: str
-
-    def serialize(self) -> list:
-        return [self.timestamp, self.score, self.time_taken, self.answer]
-
-    def calc_time_penalty(self, timeout: float) -> Optional[float]:
-        if self.time_taken < timeout:
-            return 1
-        if self.time_taken < 10 * timeout:
-            return 0
-        return None
-
-
+@dataclass(order=True)
 class Sentence:
-    _sentence: str
-    _score_history: list[HistoryScore]  # timestamp, score, time_taken, answer, sorted by timestamp ascending
-
-    @property
-    def score(self) -> float:
-        # Weighted average of the scores for the sentence, weighted by the time taken to answer and now.
-        # Score for individual answer is: score_sentence * time_penalty
-        # Time penalty is 1 if the answer is given within the timeout, and 0 if the answer is given after 10 times the timeout.
-        # After this time the question is ignored.
-        # If no answer is given, the score is 0.
-
-        # Questions older than 5 weeks are not taken into account
-
-        def weight
-
-        timeout = calculate_timeout_from_sentence(self._sentence)
-        now = time.time()
-        then =
+    score: float
+    sentence: str = field(compare=False)
 
 
 class ScoringServer:
@@ -82,72 +48,9 @@ class ScoringServer:
         heapq.heappush(self._scores_inv, self._scores[sentence])
 
 
-def just_letters(s: str) -> str:
-    return " ".join(s.lower().translate(str.maketrans("", "", "!?.,;:-")).split())
-
 
 def calculate_timeout_from_sentence(sentence: str) -> float:
     return len(just_letters(sentence)) / 3 + 4
-
-
-def score_sentence(correct_sentence: str, user_sentence: str) -> tuple[float, str]:
-    sequence_matcher = difflib.SequenceMatcher(None, just_letters(correct_sentence), just_letters(user_sentence))
-    # Calculate number of words that were read wrong.
-    # 1. Calculate positions of spaces in the correct sentence
-    correct_spaces = [0] + [i for i, c in enumerate(correct_sentence) if c == " "]
-    correct_spaces.append(len(correct_sentence))
-    # Find what words were read wrong
-    wrong_words = 0
-    mb = sequence_matcher.get_matching_blocks()
-    mb = [mb for mb in mb if mb.size > 0]
-
-    left_word_pos_idx = 0
-    sequence_pos = 0
-    words = [True] * (len(correct_spaces) - 1)  # Each word will get a True if was correctly read, or False if not
-
-    while True:  # Driven by correct_pos.
-        correct_pos_left = mb[sequence_pos].a
-        correct_pos_right = mb[sequence_pos].size
-
-        while True:
-            left_word_pos = correct_spaces[left_word_pos_idx]
-            right_word_pos = correct_spaces[left_word_pos_idx + 1]
-            if right_word_pos < correct_pos_right:
-                left_word_pos_idx += 1
-                if left_word_pos_idx == len(correct_spaces) - 1:
-                    break
-                continue
-            break
-        if left_word_pos_idx == len(correct_spaces) - 1:
-            break
-
-        sequence_pos += 1
-        if sequence_pos == len(mb):
-            break
-        correct_pos_left = mb[sequence_pos].a
-        correct_pos_right = mb[sequence_pos].size + mb[sequence_pos].a
-        while left_word_pos < correct_pos_left:
-            words[left_word_pos_idx] = False
-            left_word_pos_idx += 1
-            if left_word_pos_idx == len(correct_spaces) - 1:
-                break
-            left_word_pos = correct_spaces[left_word_pos_idx]
-            right_word_pos = correct_spaces[left_word_pos_idx + 1]
-        if left_word_pos_idx == len(correct_spaces) - 1:
-            break
-
-    total_word_count = len(correct_spaces) - 1
-    wrong_words = sum(1 for word in words if not word)
-
-    reference_tokens = correct_sentence.split()
-    formatted_text = ""
-    for i, token in enumerate(reference_tokens):
-        if words[i]:
-            formatted_text += token + " "
-        else:
-            formatted_text += f"<span style='background-color: #FF0000'>{token}</span> "
-
-    return (total_word_count - wrong_words) / total_word_count, formatted_text
 
 
 class CzytanieApp:
@@ -284,17 +187,6 @@ class CzytanieApp:
 
 
 def main():
-    # print(score_sentence("123 abcdefghijklm 12", "123 aXbcdeXghijkXm 12"))
-    # print(score_sentence("123 abcdefghijklm 12", "123 Xabcdefghijklm 12"))
-    # print(score_sentence("123 abcdefghijklm 12", "123X Xabcdefghijklm 12"))
-    # print(score_sentence("123 abcdefghijklm 12", "123 XabcdefghijklmX 12"))
-    # print(score_sentence("123 abcdefghijklm 12", "123 XabcdefghijklmX X12"))
-    # print(score_sentence("123 abcdefgh 12 abcd 987654 ABCDEFGHIJ xyz", "123 abcdXefgh 12 abcd987654 ABCDEFGHIJ xyz"))
-    # print(score_sentence("123 abcdefgh 12 1234", "123 abcXXXX 1234"))
-    # print(score_sentence("123 1234567 12 1234", "123 1234567 12 1234"))
-    #
-    # print(score_sentence("Ala ma kota", "Ala ma psa"))
-    # print(score_sentence('Człowiek jest silniejszy, kiedy stawia czoła wyzwaniom. To odwaga napędza nas do działania.', 'Człowiek jest silniejszy, kiedy stawia czoła wyzwaniom do odwagi napędza nas do działania.'))
 
     app = CzytanieApp()
     app._window.mainloop()
