@@ -1,10 +1,13 @@
 import heapq
 import tkinter as tk
 from dataclasses import dataclass, field
+from typing import Optional
+
 import numpy as np
 import difflib
 
 import whisper
+import time
 
 from sound_recorder import SoundRecorder
 
@@ -20,10 +23,43 @@ class Speech2Text:
         return out
 
 
-@dataclass(order=True)
-class Sentence:
+@dataclass
+class HistoryScore:
+    timestamp: float
     score: float
-    sentence: str = field(compare=False)
+    time_taken: float
+    answer: str
+
+    def serialize(self) -> list:
+        return [self.timestamp, self.score, self.time_taken, self.answer]
+
+    def calc_time_penalty(self, timeout: float) -> Optional[float]:
+        if self.time_taken < timeout:
+            return 1
+        if self.time_taken < 10 * timeout:
+            return 0
+        return None
+
+
+class Sentence:
+    _sentence: str
+    _score_history: list[HistoryScore]  # timestamp, score, time_taken, answer, sorted by timestamp ascending
+
+    @property
+    def score(self) -> float:
+        # Weighted average of the scores for the sentence, weighted by the time taken to answer and now.
+        # Score for individual answer is: score_sentence * time_penalty
+        # Time penalty is 1 if the answer is given within the timeout, and 0 if the answer is given after 10 times the timeout.
+        # After this time the question is ignored.
+        # If no answer is given, the score is 0.
+
+        # Questions older than 5 weeks are not taken into account
+
+        def weight
+
+        timeout = calculate_timeout_from_sentence(self._sentence)
+        now = time.time()
+        then =
 
 
 class ScoringServer:
@@ -122,7 +158,11 @@ class CzytanieApp:
     _question_text: tk.Text
     _record_button: tk.Button
     _next_question_button: tk.Button
-    _score_label: tk.Label
+    _last_score_label: tk.Label
+    _total_questions_label: tk.Label
+    _too_slow_label: tk.Label
+    _incorrect_label: tk.Label
+    _correct_label: tk.Label
 
     def __init__(self):
         self._window = tk.Tk()
@@ -154,8 +194,20 @@ class CzytanieApp:
         self._next_question_button.pack()
         self._next_question_button.bind("<ButtonPress>", self.next_question)
 
-        self._score_label = tk.Label(self._window, text="Score: 0", background='black', foreground='white')
-        self._score_label.pack()
+        self._last_score_label = tk.Label(self._window, text="Score: 0")
+        self._last_score_label.pack()
+
+        self._total_questions_label = tk.Label(self._window, text="Total questions: 0")
+        self._total_questions_label.pack()
+
+        self._too_slow_label = tk.Label(self._window, text="Too slow: 0")
+        self._too_slow_label.pack()
+
+        self._incorrect_label = tk.Label(self._window, text="Incorrect: 0")
+        self._incorrect_label.pack()
+
+        self._correct_label = tk.Label(self._window, text="Correct: 0")
+        self._correct_label.pack()
 
         self.next_question()
 
@@ -217,7 +269,7 @@ class CzytanieApp:
 
     def update_score(self):
         total_score = sum(sentence.score for sentence in self._scoring_server._scores.values())
-        self._score_label['text'] = f"Score: {total_score}"
+        self._last_score_label['text'] = f"Score: {total_score}"
 
     def next_question(self, event=None):
         if self.rerolled < 1:  # 1 is max rerolls
