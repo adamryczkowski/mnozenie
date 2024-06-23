@@ -4,7 +4,21 @@ import difflib
 def just_letters(s: str) -> str:
     return " ".join(s.lower().translate(str.maketrans("", "", "!?.,;:-")).split())
 
-def score_sentence(correct_sentence:str, user_sentence: str) -> tuple[float, str]:
+
+def calculate_timeout_from_sentence(sentence: str) -> float:
+    return len(just_letters(sentence)) / 5 + 4
+
+
+def calc_time_penalty(time_taken, sentence: str) -> float:
+    timeout = calculate_timeout_from_sentence(sentence)
+    if time_taken < timeout:
+        return 1
+    if time_taken * 2 < timeout:
+        return 0.5
+    return 0
+
+
+def score_sentence(correct_sentence: str, user_sentence: str) -> tuple[float, str]:
     sequence_matcher = difflib.SequenceMatcher(None, just_letters(correct_sentence), just_letters(user_sentence))
     # Calculate number of words that were read wrong.
     # 1. Calculate positions of spaces in the correct sentence
@@ -15,22 +29,22 @@ def score_sentence(correct_sentence:str, user_sentence: str) -> tuple[float, str
     mb = sequence_matcher.get_matching_blocks()
     mb = [mb for mb in mb if mb.size > 0]
     if len(mb) == 0:
-        return 0, highlight_sentence(correct_sentence, [False] * (len(correct_spaces)-1))
+        return 0, highlight_sentence(correct_sentence, [False] * (len(correct_spaces) - 1))
 
     left_word_pos_idx = 0
     sequence_pos = 0
-    words = [True] * (len(correct_spaces)-1) # Each word will get a True if was correctly read, or False if not
+    words = [True] * (len(correct_spaces) - 1)  # Each word will get a True if was correctly read, or False if not
 
     correct_pos_left = mb[sequence_pos].a
     correct_pos_right = mb[sequence_pos].size
     # All the words before the first match are wrong.
-    while correct_spaces[left_word_pos_idx]+1 < correct_pos_left:
+    while correct_spaces[left_word_pos_idx] + 1 < correct_pos_left:
         words[left_word_pos_idx] = False
         left_word_pos_idx += 1
         if left_word_pos_idx == len(correct_spaces) - 1:
             return 0, highlight_sentence(correct_sentence, words)
 
-    while True: # Driven by correct_pos.
+    while True:  # Driven by correct_pos.
         correct_pos_left = mb[sequence_pos].a
         correct_pos_right = mb[sequence_pos].size + mb[sequence_pos].a
 
@@ -69,11 +83,10 @@ def score_sentence(correct_sentence:str, user_sentence: str) -> tuple[float, str
     total_word_count = len(correct_spaces) - 1
     wrong_words = sum(1 for word in words if not word)
 
-
     return (total_word_count - wrong_words) / total_word_count, highlight_sentence(correct_sentence, words)
 
 
-def highlight_sentence(correct_sentence:str, words:list[bool])->str:
+def highlight_sentence(correct_sentence: str, words: list[bool]) -> str:
     reference_tokens = correct_sentence.split()
     formatted_text = ""
     for i, token in enumerate(reference_tokens):
