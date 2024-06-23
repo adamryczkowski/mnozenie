@@ -125,8 +125,8 @@ class CzytanieApp:
 
     def start_recording(self, event):
         if not self.answered:
+            self.time_taken = time.time() - self.time_start
             self._sound_recorder.start_recording()
-            self.time_start = time.time()
 
     def stop_recording(self, event):
         self._sound_recorder.stop_recording()
@@ -168,7 +168,7 @@ class CzytanieApp:
         self.accuracy_score = np.round(self.accuracy_score, 2)
         self._accuracy_score_label['text'] += f" + {score}"
 
-        time_score = calc_time_penalty(time.time() - self.time_start, self.current_sentence)
+        time_score = calc_time_penalty(self.time_taken, self.current_sentence)
         time_score = np.round(time_score, 2)
         self.time_score += time_score
         self._time_score_label['text'] += f" + {time_score}"
@@ -192,6 +192,7 @@ class CzytanieApp:
             if self._user_answer is not None:
                 self._user_answer.destroy()
             self.insert_colored_text(self.current_sentence)
+            self.time_start = time.time()
 
             self._accuracy_score_label['text'] = f"Accuracy score: {self.accuracy_score}"
             self._time_score_label['text'] = f"Time score: {self.time_score}"
