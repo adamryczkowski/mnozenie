@@ -15,7 +15,7 @@ class Speech2Text:
         self._model = whisper.load_model("medium")
 
     def get_transcript(self, sound) -> str:
-        return self._model.transcribe(sound)
+        return self._model.transcribe(sound)['text']
 
 
 @dataclass(order=True)
@@ -123,43 +123,47 @@ class CzytanieApp:
         self._window = tk.Tk()
         self._window.title("Czytanie")
 
+        self._window.configure(bg='black')
+
         self._sound_recorder = SoundRecorder()
         self._scoring_server = ScoringServer()
         self._speech2text = Speech2Text()
 
-        self._question_text = tk.Text(self._window, height=1)
+        self._question_text = tk.Text(self._window, height=1, borderwidth=0, background='black', foreground='white')
         self._question_text.pack()
 
-        self._record_button = tk.Button(self._window, text="Record")
+        self._record_button = tk.Button(self._window, text="Record", background='black', foreground='white')
         self._record_button.pack()
         self._record_button.bind("<ButtonPress>", self.start_recording)
         self._record_button.bind("<ButtonRelease>", self.stop_recording)
 
-        self._next_question_button = tk.Button(self._window, text="Next question", state='disabled')
+        self._next_question_button = tk.Button(self._window, text="Next question", background='black', foreground='white')
         self._next_question_button.pack()
         self._next_question_button.bind("<ButtonPress>", self.next_question)
 
-        self._score_label = tk.Label(self._window, text="Score: 0")
+        self._score_label = tk.Label(self._window, text="Score: 0", background='black', foreground='white')
         self._score_label.pack()
 
-        self.new_question()
+        self.next_question()
 
     def start_recording(self, event):
-        self._sound_recorder.start_recording()
+        if self._record_button['state'] == 'normal':
+            self._sound_recorder.start_recording()
 
     def stop_recording(self, event):
         self._sound_recorder.stop_recording()
-        # Gray the button out
-        self._record_button['state'] = 'disabled'
         sound = self._sound_recorder.get_last_recording_as_whisper_sound()
-        transcript = self._speech2text.get_transcript(sound)
+        self._sound_recorder.play_last_recording()
+        transcript = self._speech2text.get_transcript(sound).strip()
         if transcript == "":
-            # Just ignore it
-            self._record_button['state'] = 'normal'
+            return
+        self._user_answer = tk.Text(self._window, height=1, borderwidth=0, background='black', foreground='white')
+        self._user_answer.pack()
+        self._user_answer.insert(tk.END, transcript)
 
-        self.check_answer(transcript["text"].strip())
-        self._record_button['state'] = 'disabled' # Keep the button disabled until the next question
-        self._next_question_button['state'] = 'normal'  # Enable the next question button
+        self.check_answer(transcript)
+        self._record_button['state'] = 'disabled'
+        self._next_question_button['state'] = 'normal'
 
     def insert_colored_text(self, html_text):
         import re
@@ -182,20 +186,16 @@ class CzytanieApp:
         self.insert_colored_text(redacted_answer_in_html)
         self.update_score()
 
-
-    def new_question(self):
-        self.current_sentence = self._scoring_server.get_sentence()
-        self.insert_colored_text(self.current_sentence)
-        self._next_question_button['state'] = 'disabled'  # Disable the next question button
-
     def update_score(self):
         total_score = sum(sentence.score for sentence in self._scoring_server._scores.values())
         self._score_label['text'] = f"Score: {total_score}"
 
-    def next_question(self, event):
-        self.new_question()
-        self._next_question_button['state'] = 'disabled'
-        self._record_button['state'] = 'normal'  # Enable the record button
+    def next_question(self, event=None):
+        if self._next_question_button['state'] == 'normal':
+            self.current_sentence = self._scoring_server.get_sentence()
+            self.insert_colored_text(self.current_sentence)
+            self._next_question_button['state'] = 'disabled'
+            self._record_button['state'] = 'normal'  # Enable the record button
 
 def main():
     # print(score_sentence("123 abcdefghijklm 12", "123 aXbcdeXghijkXm 12"))
