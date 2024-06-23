@@ -2,7 +2,6 @@ import heapq
 import tkinter as tk
 from dataclasses import dataclass, field
 import numpy as np
-import difflib
 
 import whisper
 
@@ -44,71 +43,10 @@ class ScoringServer:
         heapq.heappush(self._scores_inv, self._scores[sentence])
 
 
-def just_letters(s: str) -> str:
-    return " ".join(s.lower().translate(str.maketrans("", "", "!?.,;:-")).split())
-
 
 def calculate_timeout_from_sentence(sentence: str) -> float:
     return len(just_letters(sentence)) / 3 + 4
 
-def score_sentence(correct_sentence:str, user_sentence: str) -> tuple[float, str]:
-    sequence_matcher = difflib.SequenceMatcher(None, just_letters(correct_sentence), just_letters(user_sentence))
-    # Calculate number of words that were read wrong.
-    # 1. Calculate positions of spaces in the correct sentence
-    correct_spaces = [0] + [i for i, c in enumerate(correct_sentence) if c == " "]
-    correct_spaces.append(len(correct_sentence))
-    # Find what words were read wrong
-    wrong_words = 0
-    mb = sequence_matcher.get_matching_blocks()
-    mb = [mb for mb in mb if mb.size > 0]
-
-    left_word_pos_idx = 0
-    sequence_pos = 0
-    words = [True] * (len(correct_spaces)-1) # Each word will get a True if was correctly read, or False if not
-
-    while True: # Driven by correct_pos.
-        correct_pos_left = mb[sequence_pos].a
-        correct_pos_right = mb[sequence_pos].size
-
-        while True:
-            left_word_pos = correct_spaces[left_word_pos_idx]
-            right_word_pos = correct_spaces[left_word_pos_idx + 1]
-            if right_word_pos < correct_pos_right:
-                left_word_pos_idx += 1
-                if left_word_pos_idx == len(correct_spaces) - 1:
-                    break
-                continue
-            break
-        if left_word_pos_idx == len(correct_spaces) - 1:
-            break
-
-        sequence_pos += 1
-        if sequence_pos == len(mb):
-            break
-        correct_pos_left = mb[sequence_pos].a
-        correct_pos_right = mb[sequence_pos].size + mb[sequence_pos].a
-        while left_word_pos < correct_pos_left:
-            words[left_word_pos_idx] = False
-            left_word_pos_idx += 1
-            if left_word_pos_idx == len(correct_spaces) - 1:
-                break
-            left_word_pos = correct_spaces[left_word_pos_idx]
-            right_word_pos = correct_spaces[left_word_pos_idx + 1]
-        if left_word_pos_idx == len(correct_spaces) - 1:
-            break
-
-    total_word_count = len(correct_spaces) - 1
-    wrong_words = sum(1 for word in words if not word)
-
-    reference_tokens = correct_sentence.split()
-    formatted_text = ""
-    for i, token in enumerate(reference_tokens):
-        if words[i]:
-            formatted_text += token + " "
-        else:
-            formatted_text += f"<span style='background-color: #FF0000'>{token}</span> "
-
-    return (total_word_count - wrong_words) / total_word_count, formatted_text
 
 class CzytanieApp:
     _window: tk.Tk
@@ -147,8 +85,7 @@ class CzytanieApp:
         self.next_question()
 
     def start_recording(self, event):
-        if self._record_button['state'] == 'normal':
-            self._sound_recorder.start_recording()
+        self._sound_recorder.start_recording()
 
     def stop_recording(self, event):
         self._sound_recorder.stop_recording()
@@ -191,24 +128,12 @@ class CzytanieApp:
         self._score_label['text'] = f"Score: {total_score}"
 
     def next_question(self, event=None):
-        if self._next_question_button['state'] == 'normal':
-            self.current_sentence = self._scoring_server.get_sentence()
-            self.insert_colored_text(self.current_sentence)
-            self._next_question_button['state'] = 'disabled'
-            self._record_button['state'] = 'normal'  # Enable the record button
+        self.current_sentence = self._scoring_server.get_sentence()
+        self.insert_colored_text(self.current_sentence)
+        self._next_question_button['state'] = 'disabled'
+        self._record_button['state'] = 'normal'  # Enable the record button
 
 def main():
-    # print(score_sentence("123 abcdefghijklm 12", "123 aXbcdeXghijkXm 12"))
-    # print(score_sentence("123 abcdefghijklm 12", "123 Xabcdefghijklm 12"))
-    # print(score_sentence("123 abcdefghijklm 12", "123X Xabcdefghijklm 12"))
-    # print(score_sentence("123 abcdefghijklm 12", "123 XabcdefghijklmX 12"))
-    # print(score_sentence("123 abcdefghijklm 12", "123 XabcdefghijklmX X12"))
-    # print(score_sentence("123 abcdefgh 12 abcd 987654 ABCDEFGHIJ xyz", "123 abcdXefgh 12 abcd987654 ABCDEFGHIJ xyz"))
-    # print(score_sentence("123 abcdefgh 12 1234", "123 abcXXXX 1234"))
-    # print(score_sentence("123 1234567 12 1234", "123 1234567 12 1234"))
-    #
-    # print(score_sentence("Ala ma kota", "Ala ma psa"))
-    # print(score_sentence('Człowiek jest silniejszy, kiedy stawia czoła wyzwaniom. To odwaga napędza nas do działania.', 'Człowiek jest silniejszy, kiedy stawia czoła wyzwaniom do odwagi napędza nas do działania.'))
 
     app = CzytanieApp()
     app._window.mainloop()
