@@ -8,6 +8,7 @@ import whisper
 
 from sound_recorder import SoundRecorder
 
+
 class Speech2Text:
     _model: whisper.model
 
@@ -15,7 +16,8 @@ class Speech2Text:
         self._model = whisper.load_model("medium")
 
     def get_transcript(self, sound) -> str:
-        return self._model.transcribe(sound)['text']
+        out = self._model.transcribe(sound, language='pl')['text'].strip()
+        return out
 
 
 @dataclass(order=True)
@@ -51,7 +53,8 @@ def just_letters(s: str) -> str:
 def calculate_timeout_from_sentence(sentence: str) -> float:
     return len(just_letters(sentence)) / 3 + 4
 
-def score_sentence(correct_sentence:str, user_sentence: str) -> tuple[float, str]:
+
+def score_sentence(correct_sentence: str, user_sentence: str) -> tuple[float, str]:
     sequence_matcher = difflib.SequenceMatcher(None, just_letters(correct_sentence), just_letters(user_sentence))
     # Calculate number of words that were read wrong.
     # 1. Calculate positions of spaces in the correct sentence
@@ -64,9 +67,9 @@ def score_sentence(correct_sentence:str, user_sentence: str) -> tuple[float, str
 
     left_word_pos_idx = 0
     sequence_pos = 0
-    words = [True] * (len(correct_spaces)-1) # Each word will get a True if was correctly read, or False if not
+    words = [True] * (len(correct_spaces) - 1)  # Each word will get a True if was correctly read, or False if not
 
-    while True: # Driven by correct_pos.
+    while True:  # Driven by correct_pos.
         correct_pos_left = mb[sequence_pos].a
         correct_pos_right = mb[sequence_pos].size
 
@@ -110,6 +113,7 @@ def score_sentence(correct_sentence:str, user_sentence: str) -> tuple[float, str
 
     return (total_word_count - wrong_words) / total_word_count, formatted_text
 
+
 class CzytanieApp:
     _window: tk.Tk
     _sound_recorder: SoundRecorder
@@ -119,17 +123,25 @@ class CzytanieApp:
     _record_button: tk.Button
     _next_question_button: tk.Button
     _score_label: tk.Label
+
     def __init__(self):
         self._window = tk.Tk()
         self._window.title("Czytanie")
 
+        self.answered = False
+        self.rerolled = 0
+
         self._window.configure(bg='black')
+
+        self._user_answer = None
 
         self._sound_recorder = SoundRecorder()
         self._scoring_server = ScoringServer()
         self._speech2text = Speech2Text()
 
-        self._question_text = tk.Text(self._window, height=1, borderwidth=0, background='black', foreground='white')
+        # self.loading_frames = [tk.PhotoImage(file='loading.gif',format = 'gif -index %i' %(i)) for i in range(17)]
+
+        self._question_text = tk.Text(self._window, height=1, background='black', foreground='white')
         self._question_text.pack()
 
         self._record_button = tk.Button(self._window, text="Record", background='black', foreground='white')
@@ -137,7 +149,8 @@ class CzytanieApp:
         self._record_button.bind("<ButtonPress>", self.start_recording)
         self._record_button.bind("<ButtonRelease>", self.stop_recording)
 
-        self._next_question_button = tk.Button(self._window, text="Next question", background='black', foreground='white')
+        self._next_question_button = tk.Button(self._window, text="Next question", background='black',
+                                               foreground='white')
         self._next_question_button.pack()
         self._next_question_button.bind("<ButtonPress>", self.next_question)
 
@@ -147,19 +160,35 @@ class CzytanieApp:
         self.next_question()
 
     def start_recording(self, event):
-        if self._record_button['state'] == 'normal':
+        if self.answered == False:
             self._sound_recorder.start_recording()
+
+    # def update_loading_circle(self):
+    #     self._loading_circle_label.configure(image=self.loading_frames[self.loading_frame])
+    #     self.loading_frame += 1
+    #     if self.loading_frame == 17:
+    #         self.loading_frame = 0
+    #     self._window.after(100, self.update_loading_circle)
 
     def stop_recording(self, event):
         self._sound_recorder.stop_recording()
+        # self.loading_frame = 0
+        # self._loading_circle_label = tk.Label(self._window)
+        # self._loading_circle_label.pack()
+        # self._window.after(0, self.update_loading_circle)
+
         sound = self._sound_recorder.get_last_recording_as_whisper_sound()
         self._sound_recorder.play_last_recording()
-        transcript = self._speech2text.get_transcript(sound).strip()
+        transcript = self._speech2text.get_transcript(sound)
+        # self._loading_circle_label.destroy()
         if transcript == "":
             return
-        self._user_answer = tk.Text(self._window, height=1, borderwidth=0, background='black', foreground='white')
-        self._user_answer.pack()
+        self.answered = True
+        self.rerolled = 0
+        self._user_answer = tk.Text(self._window, height=1, background='black', foreground='white')
+        self._user_answer.delete('1.0', tk.END)
         self._user_answer.insert(tk.END, transcript)
+        self._user_answer.pack()
 
         self.check_answer(transcript)
         self._record_button['state'] = 'disabled'
@@ -191,11 +220,16 @@ class CzytanieApp:
         self._score_label['text'] = f"Score: {total_score}"
 
     def next_question(self, event=None):
-        if self._next_question_button['state'] == 'normal':
+        if self.rerolled < 1:  # 1 is max rerolls
+            self.rerolled += 1
             self.current_sentence = self._scoring_server.get_sentence()
+            self.answered = False
+            if self._user_answer is not None:
+                self._user_answer.destroy()
             self.insert_colored_text(self.current_sentence)
             self._next_question_button['state'] = 'disabled'
             self._record_button['state'] = 'normal'  # Enable the record button
+
 
 def main():
     # print(score_sentence("123 abcdefghijklm 12", "123 aXbcdeXghijkXm 12"))
