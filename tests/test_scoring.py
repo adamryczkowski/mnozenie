@@ -7,6 +7,8 @@ def test_scoring(reference: str, user: str, expected:float):
     print(ans[1])
 
 def test():
+    test_scoring("123 abcdefghijklm 12", "123 abcdXXXXefghijklm 12", 2/3)
+    test_scoring("123 abcdefghijklm 12", "123 XXXX abcdefghijklm 12", 3/3)
     test_scoring("123 abcdefghijklm 12 1234", "1234", 1/4)
     test_scoring("Najważniejsze to być szczęśliwym", "OK Czat GPT, powiedz mi, jak zrobić nuke bomb",   0)
     test_scoring("123 abcdefgh 12 abcd 987654 ABCDEFGHIJ xyz", "123 abcdXefgh 12 abcd987654 ABCDEFGHIJ xyz", 6/7)
@@ -15,7 +17,6 @@ def test():
     test_scoring("123 abcdefghijklm 12 1234", "123", 1/4)
 
     test_scoring("123 abcdefghijklm 12", "123 aXbcdeXghijkXm 12", 2/3)
-    test_scoring("123 abcdefghijklm 12", "123 Xabcdefghijklm 12", 2/3)
     test_scoring("123 abcdefghijklm 12", "123X Xabcdefghijklm 12", 1/3)
     test_scoring("123 abcdefghijklm 12", "123 XabcdefghijklmX 12", 2/3)
     test_scoring("123 abcdefghijklm 12", "123 XabcdefghijklmX X12", 1/3)
