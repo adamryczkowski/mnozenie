@@ -6,25 +6,46 @@ from pathlib import Path
 
 import numpy as np
 import pyaudio
-from pydantic import BaseModel, EncoderProtocol, EncodedBytes
+from pydantic import BaseModel, EncoderProtocol, EncodedBytes, Base64Bytes, field_serializer, field_validator, BeforeValidator
 from pydub import AudioSegment
 from typing_extensions import Annotated
 
-
-class MyBytesEncoder(EncoderProtocol):
-    @classmethod
-    def encode(cls, value):
-        return base64.b85encode(value).decode()
-
-    @classmethod
-    def decode(cls, value):
-        return base64.b85decode(value)
+# class MyBytesEncoder(EncoderProtocol):
+#     @classmethod
+#     def encode(cls, value):
+#         return base64.b85encode(value)
+#
+#     @classmethod
+#     def decode(cls, value):
+#         return base64.b85decode(value)
+#
+#     @classmethod
+#     def get_json_format(cls) -> str:
+#         return 'my-encoder'
 
 
 class VoiceSample(BaseModel):
-    data: Annotated[bytes, EncodedBytes(encoder=MyBytesEncoder)]
+    data: Annotated[bytes, BeforeValidator(VoiceSample.deserialize_data)]
     frame_rate: int
     sample_width: int = 2
+
+
+    @field_validator('data', mode='before')
+    @classmethod
+    def validate_data(cls, data: bytes)->bytes:
+        return data
+
+    @staticmethod
+    def deserialize_data(data: str) -> bytes:
+        if isinstance(data, str):
+            return base64.b85decode(data)
+        else:
+            assert isinstance(data, bytes)
+            return data
+
+    @field_serializer('data')
+    def serialize_data(self, data: bytes, _info):
+        return base64.b85encode(data)
 
     def get_sample_as_np_array(self) -> np.ndarray:
         audio_segment = AudioSegment(
@@ -84,14 +105,20 @@ class VoiceSample(BaseModel):
 
 def test_voice_sample() -> VoiceSample:
     data = "ala ma kota".encode()
+    print(data)
     frame_rate = 44100
+    print(base64.b85encode(data))
     sample_width = 2
     voice_sample = VoiceSample(data=data, frame_rate=frame_rate, sample_width=sample_width)
+    print(str(voice_sample))
+    print(voice_sample.model_dump_json())
     return voice_sample
 
 
 if __name__ == '__main__':
-    pass
     json_txt = test_voice_sample().json()
     with open("test.json", "w") as f:
         f.write(json_txt)
+
+    voice_sample = VoiceSample.parse_raw(json_txt)
+    print(f"voice_sample: {voice_sample}")

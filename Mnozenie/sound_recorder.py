@@ -30,7 +30,7 @@ class SoundRecorder:
     def get_last_recording(self) -> VoiceSample:
         return VoiceSample(data=b''.join(self.frames),
                            frame_rate=44100,
-                           sample_width=2)5
+                           sample_width=2)
 
     def get_last_recording_as_whisper_sound(self) -> np.ndarray:
         # Converts the sound to np.ndarray, 16kHz, mono as float32 in range [-1, 1]
@@ -79,6 +79,7 @@ if __name__ == "__main__":
 
     recording = sound_recorder.get_last_recording()
     recording.play()
+    recording.ResampledClone(16000).play()
     # Serialize to json to file output.json
     # json_txt = json.dumps(recording.dict())
     json_txt = json.dumps(recording.__getstate__())
