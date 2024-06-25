@@ -14,13 +14,13 @@ class VoiceSample(BaseModel):
     def get_sample_as_np_array(self) -> np.ndarray:
         audio_segment = AudioSegment(
             self.data,
-            frame_rate=44100,
-            sample_width=2,
+            frame_rate=self.frame_rate,
+            sample_width=self.sample_width,
             channels=1
         )
 
         if self.frame_rate != 16000:  # 16 kHz
-            audio_segment = self.set_frame_rate(16000)
+            audio_segment = audio_segment.set_frame_rate(16000)
         arr = np.array(audio_segment.get_array_of_samples())
         arr = arr.astype(np.float32) / 32768.0
         return arr
