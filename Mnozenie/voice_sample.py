@@ -43,8 +43,9 @@ class VoiceSample(BaseModel):
 
     def play(self):
         # Play the last recording
-        stream = self.p.open(format=pyaudio.paInt16,
-                             channels=2,
+        p = pyaudio.PyAudio()
+        stream = p.open(format=pyaudio.paInt16,
+                             channels=1,
                              rate=44100,
                              output=True)
         stream.write(self.data)

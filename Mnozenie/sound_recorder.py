@@ -68,16 +68,17 @@ if __name__ == "__main__":
     print("Recording length: ", len(sound_recorder.get_last_recording()))
     sound_recorder.save_last_recording("output.wav")
     # Sound playback
-    p = pyaudio.PyAudio()
-    stream = p.open(format=pyaudio.paInt16,
-                    channels=2,
-                    rate=44100,
-                    output=True)
-    stream.write(sound_recorder.get_last_recording().data)
-    stream.stop_stream()
-    sound_recorder.save_last_recording("output.wav")
+    # p = pyaudio.PyAudio()
+    # stream = p.open(format=pyaudio.paInt16,
+    #                 channels=1,
+    #                 rate=44100,
+    #                 output=True)
+    # stream.write(sound_recorder.get_last_recording().data)
+    # stream.stop_stream()
+    # sound_recorder.save_last_recording("output.wav")
 
     recording = sound_recorder.get_last_recording()
+    recording.play()
     # Serialize to json to file output.json
     # json_txt = json.dumps(recording.dict())
     json_txt = json.dumps(recording.__getstate__())
