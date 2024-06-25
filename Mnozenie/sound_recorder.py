@@ -1,9 +1,6 @@
-import wave
-from pathlib import Path
-from pydub import AudioSegment
-
 import numpy as np
 import pyaudio
+from .voice_sample import VoiceSample
 
 
 class SoundRecorder:
@@ -28,40 +25,21 @@ class SoundRecorder:
             self.stream.close()
         self.stream = None
 
-    def get_last_recording(self) -> bytes:
-        return b''.join(self.frames)
+    def get_last_recording(self) -> VoiceSample:
+        return VoiceSample(data=b''.join(self.frames),
+                           frame_rate=44100,
+                           sample_width=2)
 
-    def get_last_recording_as_whisper_sound(self)->np.ndarray:
+    def get_last_recording_as_whisper_sound(self) -> np.ndarray:
         # Converts the sound to np.ndarray, 16kHz, mono as float32 in range [-1, 1]
         # The input sound is 44100Hz, stereo, int16
         sound = self.get_last_recording()
+        return sound.get_sample_as_np_array()
         # Downsample to 16kHz
-        audio_segment = AudioSegment(
-            sound,
-            frame_rate=44100,
-            sample_width=2,
-            channels=1
-        )
-        if audio_segment.frame_rate != 16000:  # 16 kHz
-            audio_segment = audio_segment.set_frame_rate(16000)
-        arr = np.array(audio_segment.get_array_of_samples())
-        arr = arr.astype(np.float32) / 32768.0
-        return arr
 
-
-
-
-
-
-
-    def save_last_recording(self, filename: Path):
+    def save_last_recording(self, filename: str):
         # Save the last recording as WAV file
-        wf = wave.open(str(filename), 'wb')
-        wf.setnchannels(2)
-        wf.setsampwidth(self.p.get_sample_size(pyaudio.paInt16))
-        wf.setframerate(44100)
-        wf.writeframes(b''.join(self.frames))
-        wf.close()
+        return self.get_last_recording().save(filename)
 
     def play_last_recording(self):
         # Play the last recording
