@@ -2,6 +2,7 @@ import heapq
 import tkinter as tk
 from dataclasses import dataclass, field
 from typing import Optional
+import json
 
 import numpy as np
 
@@ -22,31 +23,48 @@ class Speech2Text:
         out = self._model.transcribe(sound, language='pl')['text'].strip()
         return out
 
-
 @dataclass(order=True)
-class Sentence:
+class Score:
     score: float
-    sentence: str = field(compare=False)
-
+    sentence: str
 
 class ScoringServer:
-    _scores: dict[str, Sentence]  # Sentence -> score points
-    _scores_inv: list[Sentence]  # list of sentences sorted by score points
+    _scores: dict[str, float]  # Sentence -> score points
+    _scores_sort: list[Score] # List of sentences sorted by score\
 
-    def __init__(self, input_file: str = "czytanie-sentences.txt"):
+    def __init__(self, input_file: str = "czytanie-sentences.txt", output_file: str = "czytanie-scores.json"):
         self._scores = {}
+        self._scores_sort = []
+        try:
+            with open(output_file, 'r') as fr:
+                try:
+                    self._scores = json.load(fr)
+                except json.JSONDecodeError:
+                    with open(output_file, 'w') as fw:
+                        jsonobj = json.dumps(self._scores, indent=4)
+                        fw.write(jsonobj)
+        except FileNotFoundError:
+            with open(output_file, 'w') as fw:
+                jsonobj = json.dumps(self._scores, indent=4)
+                fw.write(jsonobj)
+        self._scores_sort = [Score(score, sentence) for sentence, score in self._scores.items()]
+
         for line in open(input_file):
             sentence = line.strip()
-            self._scores[sentence] = Sentence(0, sentence)
-        self._scores_inv = list(self._scores.values())
-        heapq.heapify(self._scores_inv)
+            if sentence not in self._scores:
+                self._scores[sentence] = 0
+                self._scores_sort.append(Score(0, sentence))
+        heapq.heapify(self._scores_sort)
 
     def get_sentence(self) -> str:
-        return heapq.heappop(self._scores_inv).sentence
+        return heapq.heappop(self._scores_sort).sentence
 
     def set_sentence_score(self, sentence: str, score: float):
-        self._scores[sentence].score = score
-        heapq.heappush(self._scores_inv, self._scores[sentence])
+        self._scores[sentence] = score
+        heapq.heappush(self._scores_sort, Score(score, sentence))
+        with open("czytanie-scores.json", 'w') as fw:
+            jsonobj = json.dumps(self._scores, indent=4)
+            fw.write(jsonobj)
 
 class CzytanieApp:
     _window: tk.Tk
@@ -61,17 +79,22 @@ class CzytanieApp:
     _time_score_label: tk.Label
     _incorrect_label: tk.Label
     _correct_label: tk.Label
+    accuracy_score: float
+    time_score: float
+    correct: float
+    incorrect: float
+    total_questions: float
 
     def __init__(self):
         self.current_sentence = None
-        self.time_taken = 0
-        self.time_start = 0
+        self.time_taken = 0.
+        self.time_start = 0.
 
-        self.accuracy_score = 0
-        self.time_score = 0
-        self.correct = 0
-        self.incorrect = 0
-        self.total_questions = 0
+        self.accuracy_score = 0.
+        self.time_score = 0.
+        self.correct = 0.
+        self.incorrect = 0.
+        self.total_questions = 0.
 
         self.answered = False
         self.rerolled = 0
@@ -86,6 +109,25 @@ class CzytanieApp:
         self._sound_recorder = SoundRecorder()
         self._scoring_server = ScoringServer()
         self._speech2text = Speech2Text()
+
+        try:
+            with open("total_scores.json", 'r') as fr:
+                try:
+                    scores = json.load(fr)
+                except json.JSONDecodeError:
+                    scores = {"accuracy": 0., "time": 0., "correct": 0., "incorrect": 0., "total": 0.}
+                    with open("total_scores.json", 'w') as fw:
+                        jsonobj = json.dumps(scores, indent=4)
+                        fw.write(jsonobj)
+                self.accuracy_score = scores["accuracy"]
+                self.time_score = scores["time"]
+                self.correct = scores["correct"]
+                self.incorrect = scores["incorrect"]
+                self.total_questions = scores["total"]
+        except FileNotFoundError:
+            with open("total_scores.json", 'w') as fw:
+                jsonobj = json.dumps({"accuracy": 0., "time": 0., "correct": 0., "incorrect": 0., "total": 0.}, indent=4)
+                fw.write(jsonobj)
 
         self._question_text = tk.Text(self._window, height=1, background='black', foreground='white')
         self._question_text.pack()
@@ -174,13 +216,17 @@ class CzytanieApp:
         self._time_score_label['text'] += f" + {time_score}"
 
         if score == 1.0 and time_score == 1.0:
-            self.correct += 1
+            self.correct += 1.
             self._correct_label['text'] += f" + 1"
         else:
-            self.incorrect += 1
+            self.incorrect += 1.
             self._incorrect_label['text'] += f" + 1"
-        self.total_questions += 1
+        self.total_questions += 1.
         self._total_questions_label['text'] += f" + 1"
+
+        with open("total_scores.json", 'w') as fw:
+            jsonobj = json.dumps({"accuracy": self.accuracy_score, "time": self.time_score, "correct": self.correct, "incorrect": self.incorrect, "total": self.total_questions}, indent=4)
+            fw.write(jsonobj)
 
         self._scoring_server.set_sentence_score(self.current_sentence, score)
         self._question_text.delete('1.0', tk.END)  # Clear the existing text
@@ -196,9 +242,9 @@ class CzytanieApp:
 
             self._accuracy_score_label['text'] = f"Accuracy score: {self.accuracy_score}"
             self._time_score_label['text'] = f"Time score: {self.time_score}"
-            self._correct_label['text'] = f"Correct: {self.correct}"
-            self._incorrect_label['text'] = f"Incorrect: {self.incorrect}"
-            self._total_questions_label['text'] = f"Total questions: {self.total_questions}"
+            self._correct_label['text'] = f"Correct: {int(self.correct)}"
+            self._incorrect_label['text'] = f"Incorrect: {int(self.incorrect)}"
+            self._total_questions_label['text'] = f"Total questions: {int(self.total_questions)}"
 
             self.answered = False
             self.rerolled += 1

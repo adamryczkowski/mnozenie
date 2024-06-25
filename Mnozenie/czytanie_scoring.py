@@ -11,10 +11,11 @@ def calculate_timeout_from_sentence(sentence: str) -> float:
 
 def calc_time_penalty(time_taken, sentence: str) -> float:
     timeout = calculate_timeout_from_sentence(sentence)
+
+    if time_taken < timeout * 2 and not time_taken < timeout:
+        return 0.5
     if time_taken < timeout:
         return 1
-    elif time_taken * 2 < timeout:
-        return 0.5
     return 0
 
 
