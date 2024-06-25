@@ -1,7 +1,9 @@
 import numpy as np
 import pyaudio
-from .voice_sample import VoiceSample
-
+from voice_sample import VoiceSample
+from pathlib import Path
+import json
+import base64
 
 class SoundRecorder:
     def __init__(self):
@@ -55,6 +57,8 @@ class SoundRecorder:
         return (in_data, pyaudio.paContinue)
 
 
+
+
 if __name__ == "__main__":
     sound_recorder = SoundRecorder()
     sound_recorder.start_recording()
@@ -69,6 +73,13 @@ if __name__ == "__main__":
                     channels=2,
                     rate=44100,
                     output=True)
-    stream.write(sound_recorder.get_last_recording())
+    stream.write(sound_recorder.get_last_recording().data)
     stream.stop_stream()
     sound_recorder.save_last_recording("output.wav")
+
+    recording = sound_recorder.get_last_recording()
+    # Serialize to json to file output.json
+    # json_txt = json.dumps(recording.dict())
+    json_txt = json.dumps(recording.__getstate__())
+    with open("output.json", "w") as f:
+        f.write(json_txt)

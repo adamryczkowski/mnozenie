@@ -3,7 +3,7 @@ import wave
 from pathlib import Path
 from pydantic import BaseModel
 from pydub import AudioSegment
-
+import base64
 
 class VoiceSample(BaseModel):
     data: bytes
@@ -32,6 +32,27 @@ class VoiceSample(BaseModel):
         wf.setframerate(self.frame_rate)
         wf.writeframes(self.data)
         wf.close()
+
+    def __len__(self):
+        return len(self.data)
+
+    @property
+    def data(self):
+        return self.data
+
+    def __getstate__(self):
+        # Encodes data as base64
+        return {
+            "data": base64.b64encode(self.data).decode(),
+            "frame_rate": self.frame_rate,
+            "sample_width": self.sample_width
+        }
+
+    def __setstate__(self, state):
+        # Encodes data as base64
+        self.data = base64.b64decode(state["data"])
+        self.frame_rate = state["frame_rate"]
+        self.sample_width = state["sample_width"]
 
 
 if __name__ == '__main__':
