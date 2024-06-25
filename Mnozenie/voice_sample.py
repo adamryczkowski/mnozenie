@@ -1,3 +1,4 @@
+import pyaudio
 import numpy as np
 import wave
 from pathlib import Path
@@ -39,6 +40,16 @@ class VoiceSample(BaseModel):
     @property
     def data(self):
         return self.data
+
+    def play(self):
+        # Play the last recording
+        stream = self.p.open(format=pyaudio.paInt16,
+                             channels=2,
+                             rate=44100,
+                             output=True)
+        stream.write(self.data)
+        stream.stop_stream()
+
 
     def __getstate__(self):
         # Encodes data as base64
