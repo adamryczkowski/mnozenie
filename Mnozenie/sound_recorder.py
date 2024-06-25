@@ -1,9 +1,8 @@
 import numpy as np
 import pyaudio
+
 from voice_sample import VoiceSample
-from pathlib import Path
-import json
-import base64
+
 
 class SoundRecorder:
     def __init__(self):
@@ -57,9 +56,7 @@ class SoundRecorder:
         return (in_data, pyaudio.paContinue)
 
 
-
-
-if __name__ == "__main__":
+def test1():
     sound_recorder = SoundRecorder()
     sound_recorder.start_recording()
     input("Press Enter to stop recording")
@@ -82,11 +79,18 @@ if __name__ == "__main__":
     recording.ResampledClone(16000).play()
     # Serialize to json to file output.json
     # json_txt = json.dumps(recording.dict())
-    json_txt = json.dumps(recording.__getstate__())
+    json_txt = recording.json()
     with open("output.json", "w") as f:
         f.write(json_txt)
 
-    loaded_json = json.load(open("output.json"))
-    loaded_voice_sample = VoiceSample(**loaded_json)
-    loaded_voice_sample.__setstate__(loaded_json)
+    with open("output.json", "r") as f:
+        json_txt2 = f.read()
+    loaded_voice_sample = VoiceSample.model_validate_json(json_txt2)
     loaded_voice_sample.play()
+
+
+if __name__ == "__main__":
+    test1()
+    # json_txt = json.loads(open("output.json", "r").read())
+    # loaded_voice_sample = parse_obj_as(VoiceSample, json_txt)
+    # loaded_voice_sample.play()

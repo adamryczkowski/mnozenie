@@ -6,37 +6,18 @@ from pathlib import Path
 
 import numpy as np
 import pyaudio
-from pydantic import BaseModel, EncoderProtocol, EncodedBytes, Base64Bytes, field_serializer, field_validator, BeforeValidator
+from pydantic import BaseModel, field_serializer, field_validator
 from pydub import AudioSegment
-from typing_extensions import Annotated
-
-# class MyBytesEncoder(EncoderProtocol):
-#     @classmethod
-#     def encode(cls, value):
-#         return base64.b85encode(value)
-#
-#     @classmethod
-#     def decode(cls, value):
-#         return base64.b85decode(value)
-#
-#     @classmethod
-#     def get_json_format(cls) -> str:
-#         return 'my-encoder'
 
 
 class VoiceSample(BaseModel):
-    data: Annotated[bytes, BeforeValidator(VoiceSample.deserialize_data)]
+    data: bytes  # Annotated[bytes, BeforeValidator(VoiceSample.deserialize_data)]
     frame_rate: int
     sample_width: int = 2
 
-
     @field_validator('data', mode='before')
     @classmethod
-    def validate_data(cls, data: bytes)->bytes:
-        return data
-
-    @staticmethod
-    def deserialize_data(data: str) -> bytes:
+    def validate_data(cls, data: bytes) -> bytes:
         if isinstance(data, str):
             return base64.b85decode(data)
         else:
@@ -91,7 +72,7 @@ class VoiceSample(BaseModel):
     def play(self):
         # Play the last recording
         p = pyaudio.PyAudio()
-        if self.sample_width== 2:
+        if self.sample_width == 2:
             p_format = pyaudio.paInt16
         else:
             raise ValueError("Unsupported sample width")
