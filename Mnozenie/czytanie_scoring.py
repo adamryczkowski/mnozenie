@@ -2,7 +2,7 @@ import difflib
 
 
 def just_letters(s: str) -> str:
-    return " ".join(s.lower().translate(str.maketrans("", "", "!?.,;:-")).split())
+    return " ".join(s.lower().translate(str.maketrans("", "", "!?.,;:-–")).split())
 
 
 def calculate_timeout_from_sentence(sentence: str) -> float:

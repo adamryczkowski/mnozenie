@@ -9,6 +9,7 @@ import numpy as np
 import whisper
 import time
 
+<<<<<<< Updated upstream
 from pydub import AudioSegment
 from pydub.playback import play
 
@@ -16,6 +17,10 @@ from .czytanie_scoring import score_sentence, calc_time_penalty
 from .sound_recorder import SoundRecorder
 from threading import Thread
 import requests
+=======
+from .czytanie_scoring import score_sentence, calc_time_penalty
+from .sound_recorder import SoundRecorder
+>>>>>>> Stashed changes
 
 
 class Speech2Text:
@@ -133,7 +138,7 @@ class CzytanieApp:
                                      indent=4)
                 fw.write(jsonobj)
 
-        self._question_text = tk.Text(self._window, height=1, background='black', foreground='white')
+        self._question_text = tk.Text(self._window, height=1, background='black', foreground='white', width=100)
         self._question_text.pack()
 
         self._record_button = tk.Button(self._window, text="Record", background='black', foreground='white')
