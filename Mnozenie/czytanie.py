@@ -5,6 +5,7 @@ from typing import Optional
 import json
 
 import numpy as np
+from pathlib import Path
 
 import whisper
 import time
@@ -67,6 +68,9 @@ class ScoringServer:
             jsonobj = json.dumps(self._scores, indent=4)
             fw.write(jsonobj)
 
+def get_resource(resource_name:str)->Path:
+    curdir = Path(__file__).parent
+    return curdir / resource_name
 
 class CzytanieApp:
     _window: tk.Tk
@@ -230,13 +234,13 @@ class CzytanieApp:
         if score == 1.0 and time_score == 1.0:
             self.correct += 1.
             self._correct_label['text'] += f" + 1"
-            song = AudioSegment.from_mp3("correct.mp3")
+            song = AudioSegment.from_mp3(get_resource("correct.mp3"))
             T = Thread(target=play, args=(song,))
             T.start()
         else:
             self.incorrect += 1.
             self._incorrect_label['text'] += f" + 1"
-            song = AudioSegment.from_mp3("incorrect.mp3")
+            song = AudioSegment.from_mp3(get_resource("incorrect.mp3"))
             T = Thread(target=play, args=(song,))
             T.start()
 
