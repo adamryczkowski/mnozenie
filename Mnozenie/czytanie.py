@@ -20,7 +20,7 @@ import requests
 
 class Speech2Text:
     def get_transcript(self, sound) -> str:
-        return requests.get("http://localhost:8000/request/", data=sound.json()).text.strip()
+        return requests.get("http://192.168.10.5:8000/request/", data=sound.json()).text.strip()
 
 
 @dataclass(order=True)

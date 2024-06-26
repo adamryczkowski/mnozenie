@@ -1,4 +1,7 @@
-play:
+play: czytaj
+
+mnoz:
 	poetry run mnozenie
 
-test:
+czytaj:
+	poetry run czytanie
