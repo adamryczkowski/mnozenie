@@ -9,7 +9,6 @@ import numpy as np
 import whisper
 import time
 
-<<<<<<< Updated upstream
 from pydub import AudioSegment
 from pydub.playback import play
 
@@ -17,10 +16,6 @@ from .czytanie_scoring import score_sentence, calc_time_penalty
 from .sound_recorder import SoundRecorder
 from threading import Thread
 import requests
-=======
-from .czytanie_scoring import score_sentence, calc_time_penalty
-from .sound_recorder import SoundRecorder
->>>>>>> Stashed changes
 
 
 class Speech2Text:

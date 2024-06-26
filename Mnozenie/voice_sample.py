@@ -24,7 +24,7 @@ class VoiceSample(BaseModel):
             assert isinstance(data, bytes)
             return data
 
-5    @field_serializer('data')
+    @field_serializer('data')
     def serialize_data(self, data: bytes, _info):
         return base64.b85encode(data)
 
