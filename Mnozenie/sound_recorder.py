@@ -1,7 +1,7 @@
 import numpy as np
 import pyaudio
 
-from voice_sample import VoiceSample
+from .voice_sample import VoiceSample
 
 
 class SoundRecorder:
