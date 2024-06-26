@@ -83,6 +83,9 @@ class VoiceSample(BaseModel):
         stream.write(self.data)
         stream.stop_stream()
 
+    def length(self):
+        return len(self.data) / self.frame_rate / self.sample_width
+
 
 def test_voice_sample() -> VoiceSample:
     data = "ala ma kota".encode()
