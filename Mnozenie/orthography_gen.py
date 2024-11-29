@@ -17,7 +17,7 @@ def make_prompt_template(words_to_include: list[str], n: int) -> str:
 
 
 def choose_best_dictation_template(dictation_list: list[str]) -> str:
-    user_prompt = f"""You are given a list of dictation exercises. Choose the one that is the most appropriate, interesting. funny, and grammatically correct. Output in the form "n", where n is the number of the chosen dictation exercise.\n"""
+    user_prompt = """You are given a list of dictation exercises. Choose the one that is the most appropriate, interesting. funny, and grammatically correct. Output in the form "n", where n is the number of the chosen dictation exercise.\n"""
     assert len(dictation_list) > 0
     for i, dictation in enumerate(dictation_list):
         user_prompt += f"{i + 1}. {dictation}\n"
@@ -25,19 +25,25 @@ def choose_best_dictation_template(dictation_list: list[str]) -> str:
     return user_prompt
 
 
-def call_the_openai_api(system_prompt: str, user_prompt: str, server_ip: str = "192.168.42.5", server_port: int = 1234):
+def call_the_openai_api(
+    system_prompt: str,
+    user_prompt: str,
+    server_ip: str = "192.168.42.5",
+    server_port: int = 1234,
+):
     """Calls the local LLM server that is running the OpenAI API. No key is necessary."""
 
     # Chat with an intelligent assistant in your terminal
 
     # Point to the local server
-    client = OpenAI(base_url=f"http://{server_ip}:{server_port}/v1", api_key="lm-studio")
+    client = OpenAI(
+        base_url=f"http://{server_ip}:{server_port}/v1", api_key="lm-studio"
+    )
 
     history = [
-        {"role": "system",
-         "content": system_prompt},
-        {"role": "user",
-         "content": user_prompt}]
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
 
     completion = client.chat.completions.create(
         model="model-identifier",
@@ -78,13 +84,16 @@ def make_dictation_list_candidates(words: list[str], n: int) -> list[str]:
         expected_prefix = f"{i + 1}."
         line = line.strip()
         if line.startswith(expected_prefix):
-            dictation_list.append(line[len(expected_prefix):].strip())
+            dictation_list.append(line[len(expected_prefix) :].strip())
         else:
-            raise ValueError(f"Error in parsing the dictation list. Expected prefix: {expected_prefix}, got: {line}")
+            raise ValueError(
+                f"Error in parsing the dictation list. Expected prefix: {expected_prefix}, got: {line}"
+            )
 
     return dictation_list
 
-def extract_integers_from_str(text:str)->list[int]:
+
+def extract_integers_from_str(text: str) -> list[int]:
     """Extracts all the integers from the text"""
     ans = []
     cur_number = ""
@@ -100,20 +109,21 @@ def extract_integers_from_str(text:str)->list[int]:
         cur_number = ""
     return ans
 
+
 def choose_best_dictation(dictation_list: list[str]) -> str:
     user_prompt = choose_best_dictation_template(dictation_list)
 
     system_prompt_str = system_prompt()
 
     best_choice_txt: str = call_the_openai_api(system_prompt_str, user_prompt)
-    numbers=extract_integers_from_str(best_choice_txt)
+    numbers = extract_integers_from_str(best_choice_txt)
     if len(numbers) != 1:
         raise ValueError(f"Expected one number, got {len(numbers)}")
 
     best_choice = numbers[0]
 
-
     return dictation_list[int(best_choice) - 1]
+
 
 def prepare_dictation_sentence(words: list[str]) -> str:
     dictation_list = make_dictation_list_candidates(words, 5)
@@ -131,5 +141,6 @@ def test():
     stentence = prepare_dictation_sentence(words)
     print(stentence)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     test()

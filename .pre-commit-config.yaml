@@ -1,0 +1,170 @@
+---
+# List of all hooks: https://pre-commit.com/hooks.html
+repos:
+  # General hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-merge-conflict
+      - id: check-shebang-scripts-are-executable
+        exclude_types: [groovy]
+      - id: check-symlinks
+      - id: check-toml
+      - id: check-json
+      - id: debug-statements
+      - id: destroyed-symlinks
+      - id: detect-private-key
+      - id: end-of-file-fixer
+        exclude: (\.dat)|(\.vcxproj(\.filters)?)|(\.targets)$
+      - id: fix-byte-order-marker
+        exclude: ((.*/)?VSProject/.*)|(\.sln)$
+      - id: mixed-line-ending
+#      - id: no-commit-to-branch
+#        args: [--branch, master]
+      - id: trailing-whitespace
+        exclude: \.dat$
+  - repo: https://github.com/syntaqx/git-hooks
+    rev: v0.0.18
+    hooks:
+      - id: forbid-binary
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.10.0
+    hooks:
+      - id: text-unicode-replacement-char
+  - repo: https://github.com/sirwart/ripsecrets  # Secrets scanner
+    rev: v0.1.8
+    hooks:
+      - id: ripsecrets
+        exclude: \.secrets\.baseline
+      # uncomment to check additional patterns
+      # args:
+      # - --additional-pattern 'mytoken*'
+      # - --additional-pattern 'mykey*'
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]
+#        exclude: tests/.*
+  - repo: https://github.com/codespell-project/codespell  # Common misspellings
+    rev: v2.3.0
+    hooks:
+      - id: codespell
+        files: \.(md|rst|adoc)$
+        args: [-L, thirdparty]
+      - id: codespell
+        files: \.(md|rst|adoc)$
+        args: [-L, thirdparty, --write-changes]
+  - repo: https://github.com/crate-ci/typos
+    rev: typos-dict-v0.11.35
+    hooks:
+      - id: typos
+        verbose: true
+        files: \.(md|rst|adoc)$
+        args: [--verbose]
+      - id: typos
+        verbose: true
+        files: \.(md|rst|adoc)$
+        args: [--write-changes]
+
+  # Python hooks
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Ruff version.
+    rev: v0.7.4
+    hooks:
+      # Run the linter.
+      - id: ruff
+        args: [--fix]
+      # Run the formatter.
+      - id: ruff-format
+  # Disable bandit for now, as it fails on ./src/cpp-code-format.py:142:20.
+  - repo: https://github.com/PyCQA/bandit  # Linter for security issues
+    rev: 1.7.10
+    hooks:
+      - id: bandit
+        args:
+          - --skip
+          - B101
+          - --severity-level
+          - high
+          - --confidence-level
+          - medium
+
+  # C++
+  - repo: https://github.com/pre-commit/mirrors-clang-format  # Formatter
+    rev: v19.1.3  # We should consider moving to v18.1.5
+    hooks:
+      - id: clang-format
+        types_or: [c++, c, cuda]
+  #        args: ['-style=file']
+  #        args: ['--help', '--version']
+  - repo: https://github.com/finsberg/clang-format-docs  # Formatter for docs
+    rev: v0.3.0
+    hooks:
+      - id: clang-format-docs
+        additional_dependencies: [clang-format==14.0.6]
+
+  # YAML
+  #    - repo: https://github.com/jumanjihouse/pre-commit-hook-yamlfmt  # Formatter
+  #      rev: 0.2.3
+  #      hooks:
+  #          - id: yamlfmt
+  - repo: https://github.com/lyz-code/yamlfix  # Formatter
+    rev: 1.17.0
+    hooks:
+      - id: yamlfix
+  - repo: https://github.com/adrienverge/yamllint  # Linter
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+
+  # BASH
+  - repo: https://github.com/lovesegfault/beautysh  # Formatter
+    rev: v6.2.1
+    hooks:
+      - id: beautysh
+        args: [--indent-size=4, --tab, --force-function-style=fnpar]
+  - repo: https://github.com/detailyang/pre-commit-shell  # Linter. Requires shellcheck
+    rev: 1.0.5
+    hooks:
+      - id: shell-lint
+
+    # .gitignore
+  - repo: https://github.com/lorenzwalthert/gitignore-tidy  # Formatter
+    rev: 0.1.2
+    hooks:
+      - id: tidy-gitignore
+        args: [--allow-leading-whitespace]
+        exclude: ^\.gitignore$  # Ignoring the main .gitignore file for now. Without comments this will re-shuffle the order of all the entries.
+
+    # CMake
+  - repo: https://github.com/BlankSpruce/gersemi  # Formatter
+    rev: 0.17.0
+    hooks:
+      - id: gersemi
+        args: [-i, --list-expansion, favour-inlining, --indent, '4']  # For now the `-i` should stay at the beginning of all args. See: https://github.com/BlankSpruce/gersemi/issues/23
+  - repo: https://github.com/cmake-lint/cmake-lint  # Linter
+    rev: 1.4.3
+    hooks:
+      - id: cmakelint
+        args: ['--filter=-readability/wonkycase,-linelength']
+
+  # Makefile
+  # The following repo is disabled for now, as it fails on ./src/Makefile and I don't feel qualified to fix it.
+  #  - repo: https://github.com/mrtazz/checkmake.git
+  #  # Or another commit hash or version
+  #    rev: 0.2.2
+  #    hooks:
+  #  # Use this hook to let pre-commit build checkmake in its sandbox
+  #      - id: checkmake
+
+  # XML
+  - repo: https://github.com/lsst-ts/pre-commit-xmllint
+    rev: 6f36260b537bf9a42b6ea5262c915ae50786296e
+    hooks:
+      - id: format-xmllint
+        files: \.(xsd)|(xml)$
+        exclude: ((.*/)?VSProject/.*)$

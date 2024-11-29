@@ -19,21 +19,17 @@ from overrides import overrides
 class ITask(ABC):
     @property
     @abstractmethod
-    def result(self) -> int:
-        ...
+    def result(self) -> int: ...
 
     @abstractmethod
-    def get_question(self) -> str:
-        ...
+    def get_question(self) -> str: ...
 
     @property
     @abstractmethod
-    def difficulty_score(self):
-        ...
+    def difficulty_score(self): ...
 
     @abstractmethod
-    def get_time_limit(self) -> float:
-        ...
+    def get_time_limit(self) -> float: ...
 
     @property
     @abstractmethod
@@ -91,8 +87,14 @@ class Mnozenie(ITask):
             return 0
         else:
             # noinspection PyTypeChecker
-            return max(1, math.log(self._num2 * self._num1 + 1) / math.log(9) + math.log(
-                min(self._num2, self._num1) + 1)) - 1
+            return (
+                max(
+                    1,
+                    math.log(self._num2 * self._num1 + 1) / math.log(9)
+                    + math.log(min(self._num2, self._num1) + 1),
+                )
+                - 1
+            )
 
     @overrides
     def get_time_limit(self) -> float:
@@ -143,8 +145,14 @@ class Dodawanie(ITask):
             return 0
         else:
             # noinspection PyTypeChecker
-            return max(1, math.log(self._num2 * self._num1 + 1) / math.log(9) + math.log(
-                min(self._num2, self._num1) + 1)) - 1
+            return (
+                max(
+                    1,
+                    math.log(self._num2 * self._num1 + 1) / math.log(9)
+                    + math.log(min(self._num2, self._num1) + 1),
+                )
+                - 1
+            )
 
     @overrides
     def get_time_limit(self) -> float:
@@ -164,7 +172,9 @@ class Dodawanie(ITask):
 class Tasks:
     _tasks: list[ITask]
     _epoch: int
-    _performance: dict[str, tuple[int, int, list[bool]]]  # mapping: question -> history of correctness of answers
+    _performance: dict[
+        str, tuple[int, int, list[bool]]
+    ]  # mapping: question -> history of correctness of answers
 
     @staticmethod
     def CreateFromJSON(json_file: Path = "performance.json"):
@@ -194,17 +204,33 @@ class Tasks:
                 if i * j <= max_result and i * j >= min_result:
                     task = Mnozenie(i, j, False, False, 0)
                     self._tasks.append(task)
-                    self._performance[task.get_question()] = (0, 0, [False, False, False, False])
+                    self._performance[task.get_question()] = (
+                        0,
+                        0,
+                        [False, False, False, False],
+                    )
                     task = Mnozenie(i, j, True, False, 0)
                     self._tasks.append(task)
-                    self._performance[task.get_question()] = (0, 0, [False, False, False, False])
-                    if (i != j):
+                    self._performance[task.get_question()] = (
+                        0,
+                        0,
+                        [False, False, False, False],
+                    )
+                    if i != j:
                         task = Mnozenie(i, j, False, True, 0)
                         self._tasks.append(task)
-                        self._performance[task.get_question()] = (0, 0, [False, False, False, False])
+                        self._performance[task.get_question()] = (
+                            0,
+                            0,
+                            [False, False, False, False],
+                        )
                         task = Mnozenie(i, j, True, True, 0)
                         self._tasks.append(task)
-                        self._performance[task.get_question()] = (0, 0, [False, False, False, False])
+                        self._performance[task.get_question()] = (
+                            0,
+                            0,
+                            [False, False, False, False],
+                        )
 
     def task_fitness(self, task: ITask) -> float:
         """Returns the fitness of a task to get presented to the user based on how long it has been since it was last presented,
@@ -217,7 +243,7 @@ class Tasks:
 
         performance = performance_total * 0.5 + performance_last_4 * 0.5
 
-        ans = (1 - performance)  # * (1 + epoch_component)
+        ans = 1 - performance  # * (1 + epoch_component)
         random_factor = random.uniform(-0.1, 0.1)
         return -ans + random_factor
 
@@ -275,7 +301,9 @@ class MnozenieApp:
         self.answer_entry.pack()
         self.answer_entry.focus_set()  # Set focus on the textbox
 
-        self.check_button = tk.Button(self.window, text="Check Answer", command=self.check_answer)
+        self.check_button = tk.Button(
+            self.window, text="Check Answer", command=self.check_answer
+        )
         self.check_button.pack()
 
         self.quit_button = tk.Button(self.window, text="Quit", command=self.quit_app)
@@ -287,8 +315,10 @@ class MnozenieApp:
         self.time_label = tk.Label(self.window, text="Time: 0")
         self.time_label.pack()
 
-        self.window.bind('<Return>', lambda event: self.check_answer())
-        self.window.bind('<KP_Enter>', lambda event: self.check_answer())  # Bind the numeric pad enter key
+        self.window.bind("<Return>", lambda event: self.check_answer())
+        self.window.bind(
+            "<KP_Enter>", lambda event: self.check_answer()
+        )  # Bind the numeric pad enter key
 
         success_image = Image.open(root_path / "success.jpg")
         self.success_photo = ImageTk.PhotoImage(success_image)
@@ -316,7 +346,7 @@ class MnozenieApp:
     def new_question(self):
         self._task = self._tasks.get_next_task()
 
-        self.question_label['text'] = self._task.get_question() + " = ?"
+        self.question_label["text"] = self._task.get_question() + " = ?"
         self._start_time = time.time()
         self.retries = 0
 
@@ -331,7 +361,9 @@ class MnozenieApp:
                 self.show_timeout()
                 self._tasks.give_feedback(self._task, False)
             else:
-                print(f"Answer Withing the time limit of {self._task.get_time_limit()}.")
+                print(
+                    f"Answer Withing the time limit of {self._task.get_time_limit()}."
+                )
                 self._score += 1 / (1 + self.retries)
                 self.show_success()
                 self._tasks.give_feedback(self._task, not self._repetition)
@@ -352,10 +384,13 @@ class MnozenieApp:
         self.window.after(1000, self.success_label.pack_forget)  # Remove after 1 second
 
     def show_failure(self, answer):
-        self.failures_label[
-            'text'] = f"You answered {answer}. The correct answer to {self._task.get_question()} is {self._task.result}."
+        self.failures_label["text"] = (
+            f"You answered {answer}. The correct answer to {self._task.get_question()} is {self._task.result}."
+        )
         self.failures_label.pack()
-        self.window.after(1000, self.failures_label.pack_forget)  # Remove after 1 second
+        self.window.after(
+            1000, self.failures_label.pack_forget
+        )  # Remove after 1 second
 
     def show_timeout(self):
         self.timeout_label.pack()
@@ -363,10 +398,12 @@ class MnozenieApp:
 
     def update_gui(self):
         # Rounded to 1 digit:
-        self.score_label['text'] = f"Score: {self._score:.1f}"
-        self.time_label['text'] = f"Slow responses: {self.slow_responses}"
-        self.failures_label['text'] = f"Failures: {self.failures}"  # Update the text of the failures label
-        self.answer_entry.delete(0, 'end')
+        self.score_label["text"] = f"Score: {self._score:.1f}"
+        self.time_label["text"] = f"Slow responses: {self.slow_responses}"
+        self.failures_label["text"] = (
+            f"Failures: {self.failures}"  # Update the text of the failures label
+        )
+        self.answer_entry.delete(0, "end")
         # Add a label to display the number of failures
 
 
