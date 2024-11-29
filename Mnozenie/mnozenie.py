@@ -91,7 +91,8 @@ class Mnozenie(ITask):
             return 0
         else:
             # noinspection PyTypeChecker
-            return max(1, math.log(self._num2 * self._num1 + 1) / math.log(9) + math.log(min(self._num2,  self._num1) + 1) ) - 1
+            return max(1, math.log(self._num2 * self._num1 + 1) / math.log(9) + math.log(
+                min(self._num2, self._num1) + 1)) - 1
 
     @overrides
     def get_time_limit(self) -> float:
@@ -142,7 +143,8 @@ class Dodawanie(ITask):
             return 0
         else:
             # noinspection PyTypeChecker
-            return max(1, math.log(self._num2 * self._num1 + 1) / math.log(9) + math.log(min(self._num2,  self._num1) + 1) ) - 1
+            return max(1, math.log(self._num2 * self._num1 + 1) / math.log(9) + math.log(
+                min(self._num2, self._num1) + 1)) - 1
 
     @overrides
     def get_time_limit(self) -> float:
@@ -162,15 +164,21 @@ class Dodawanie(ITask):
 class Tasks:
     _tasks: list[ITask]
     _epoch: int
-    _performance: dict[str, list[bool]]  # mapping: question -> history of correctness of answers
+    _performance: dict[str, tuple[int, int, list[bool]]]  # mapping: question -> history of correctness of answers
 
     @staticmethod
     def CreateFromJSON(json_file: Path = "performance.json"):
         with open(json_file, "r") as f:
             performance = json.load(f)
         tasks = Tasks(10, 100, 10)
-        for question, history in performance.items():
-            tasks._performance[question] = [bool(x) for x in history]
+        for question, answers in performance.items():
+            if isinstance(answers, list) and len(answers) == 3:
+                correct, total, history = answers
+            else:
+                correct = sum(answers)
+                total = len(answers)
+                history = answers
+            tasks._performance[question] = (correct, total, [bool(x) for x in history])
         return tasks
 
     def serialize_performance(self, json_file: Path = "performance.json"):
@@ -186,45 +194,30 @@ class Tasks:
                 if i * j <= max_result and i * j >= min_result:
                     task = Mnozenie(i, j, False, False, 0)
                     self._tasks.append(task)
-                    self._performance[task.get_question()] = [False, False, False, False]
+                    self._performance[task.get_question()] = (0, 0, [False, False, False, False])
                     task = Mnozenie(i, j, True, False, 0)
                     self._tasks.append(task)
-                    self._performance[task.get_question()] = [False, False, False, False]
+                    self._performance[task.get_question()] = (0, 0, [False, False, False, False])
                     if (i != j):
                         task = Mnozenie(i, j, False, True, 0)
                         self._tasks.append(task)
-                        self._performance[task.get_question()] = [False, False, False, False]
+                        self._performance[task.get_question()] = (0, 0, [False, False, False, False])
                         task = Mnozenie(i, j, True, True, 0)
                         self._tasks.append(task)
-                        self._performance[task.get_question()] = [False, False, False, False]
-
-        substr_dict = {}
-        # for _ in range(500):
-        #     i = random.randint(1, 100)
-        #     j = random.randint(1, 100)
-        #     b = random.randint(0, 3) != 1
-        #     if b:
-        #         key = f"{i} + {j}"
-        #         if i+j > 100:
-        #             continue
-        #     else:
-        #         if i < j:
-        #             i, j = j, i
-        #         key = f"{i} - {j}"
-        #     if key not in substr_dict:
-        #         task = Dodawanie(i, j, not b, 0)
-        #         self._tasks.append(task)
-        #         self._performance[task.get_question()] = [False, False, False, False]
-        #         substr_dict[key] = True
+                        self._performance[task.get_question()] = (0, 0, [False, False, False, False])
 
     def task_fitness(self, task: ITask) -> float:
         """Returns the fitness of a task to get presented to the user based on how long it has been since it was last presented,
         and how well the user has been doing on it"""
-        epoch_component = (self._epoch - task.epoch) * 0.1
-        performance_last_4 = self._performance[task.get_question()][-4:]
-        performance_last_4 = sum(performance_last_4) / len(performance_last_4)
+        # epoch_component = (self._epoch - task.epoch) * 0.1
+        correct, total, history = self._performance[task.get_question()]
+        total = max(1, total)
+        performance_last_4 = sum(history) / len(history)
+        performance_total = correct / total
 
-        ans = (1 - performance_last_4) * (1 + epoch_component)
+        performance = performance_total * 0.5 + performance_last_4 * 0.5
+
+        ans = (1 - performance)  # * (1 + epoch_component)
         random_factor = random.uniform(-0.1, 0.1)
         return -ans + random_factor
 
@@ -238,8 +231,13 @@ class Tasks:
         return task
 
     def give_feedback(self, task: ITask, correct: bool):
-        self._performance[task.get_question()].append(correct)
-        self._performance[task.get_question()].pop(0)
+        correct_count, total, history = self._performance[task.get_question()]
+        history.append(correct)
+        history.pop(0)
+        if correct:
+            correct_count += 1
+        total += 1
+        self._performance[task.get_question()] = (correct_count, total, history)
 
 
 class MnozenieApp:
@@ -327,11 +325,13 @@ class MnozenieApp:
         correct = answer == self._task.result
         if correct:
             if time.time() - self._start_time > self._task.get_time_limit():
+                print(f"Time limit: {self._task.get_time_limit()} exceeded.")
                 self.slow_responses += 1
                 self._score += 0.1 / (1 + self.retries)
                 self.show_timeout()
                 self._tasks.give_feedback(self._task, False)
             else:
+                print(f"Answer Withing the time limit of {self._task.get_time_limit()}.")
                 self._score += 1 / (1 + self.retries)
                 self.show_success()
                 self._tasks.give_feedback(self._task, not self._repetition)
@@ -346,7 +346,6 @@ class MnozenieApp:
             self._repetition = True
             self._tasks.give_feedback(self._task, False)
         self._tasks.serialize_performance(self._perf_file)
-
 
     def show_success(self):
         self.success_label.pack()
