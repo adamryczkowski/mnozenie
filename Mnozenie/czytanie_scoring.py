@@ -2,11 +2,11 @@ import difflib
 
 
 def just_letters(s: str) -> str:
-    return " ".join(s.lower().translate(str.maketrans("", "", "!?.,;:-–")).split())
+    return " ".join(s.lower().translate(str.maketrans("", "", "!?.,;:-–…")).split())
 
 
 def calculate_timeout_from_sentence(sentence: str) -> float:
-    return len(just_letters(sentence)) / 5 + 4
+    return len(just_letters(sentence)) / 1.5 + 6
 
 
 def calc_time_penalty(time_taken, sentence: str) -> float:

@@ -4,4 +4,6 @@ mnoz:
 	poetry run mnozenie
 
 czytaj:
-	poetry run czytanie
+   #!/bin/bash
+   cd kot_w_butach
+   poetry run czytanie
